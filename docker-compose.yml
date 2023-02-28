@@ -1,0 +1,40 @@
+services:
+  mitmproxy:
+    image: "mitmproxy"
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./mitmproxy/scripts:/mitm"
+    build: ./mitmproxy
+    environment:
+      - ROOT
+    depends_on:
+      hiddenservices:
+        condition: service_healthy
+  hiddenservices:
+    image: "hiddenservices"
+    volumes:
+      - "./hidden_services/services:/services"
+    build: ./hidden_services
+    ports:
+      - "5126:5126"
+    environment:
+      - NUMCHARS
+      - NUMINSTANCES
+    healthcheck:
+      test: netstat -tulpn | grep LISTEN | grep '0.0.0.0:5126'
+      interval: 1s
+      retries: 5
+      start_period: 3s
+      timeout: 5s
+  torclient:
+    image: "dperson/torproxy"
+    ports:
+      - "9050:9050"
+  redis:
+    image: "redis"
+    volumes:
+      - "./redis_data:/data"
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
